@@ -1,0 +1,17 @@
+[
+    {
+        "nombre": "Plan Básico",
+        "precio": 50000,
+        "beneficios": ["Consultas médicas generales", "Guardia 24hs","Acceso a farmacias", "Cobertura odontológica básica"]
+    },
+    {
+        "nombre": "Plan Intermedio",
+        "precio": 100000,
+        "beneficios": ["Consultas médicas especializadas", "Hospitalización", "Cobertura odontológica avanzada"]
+    },
+    {
+        "nombre": "Plan Premium",
+        "precio": 200000,
+        "beneficios": ["Internación sin costo", "Acceso a cirugías", "Medicina preventiva avanzada", "Cobertura odontológica avanzada"]
+    }
+]
