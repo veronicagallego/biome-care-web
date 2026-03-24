@@ -373,22 +373,43 @@ const mostrarPlanesResumen = (planes) => {
 
     planes.forEach((plan) => {
         const beneficiosTexto = plan.beneficios.join(", ").replace(/'/g, "\\'");
+        const descripcion = plan.descripcion || "";
+        const destacado = plan.destacado ? "plan-destacado" : "";
+        const badge = plan.destacado
+            ? `<span class="plan-badge">Recomendado</span>`
+            : "";
 
         contenedor.innerHTML += `
-            <div class="col-md-6 col-lg-4">
-                <div class="card">
-                    <h3 class="card-title h4">${plan.nombre}</h3>
-                    <p class="plan-price">${formatearPrecio(plan.precio)}</p>
-                    <ul>
-                        ${plan.beneficios.map((beneficio) => `<li>${beneficio}</li>`).join("")}
-                    </ul>
-                    <button 
-                        type="button"
-                        class="btn btn-biome w-100 mt-auto btn-ver-plan"
-                        data-nombre="${plan.nombre}"
-                        data-beneficios="${beneficiosTexto}">
-                        Ver detalle
-                    </button>
+            <div class="col-12 col-md-6 col-lg-4 d-flex justify-content-center">
+                <div class="card plan-card text-center w-100 ${destacado}">
+                    ${badge}
+
+                    <div class="card-body d-flex flex-column">
+                        <h3 class="card-title">${plan.nombre}</h3>
+                        <p class="plan-desc">${descripcion}</p>
+
+                        <div class="plan-price">
+                            ${formatearPrecio(plan.precio)}
+                            <span>/mes</span>
+                        </div>
+
+                        <ul class="plan-benefits text-start mx-auto mx-md-0">
+                            ${plan.beneficios.map((beneficio) => `
+    <li>
+        <i class="bi bi-check-circle-fill plan-check"></i>
+        ${beneficio}
+    </li>
+`).join("")}
+                        </ul>
+
+                        <button
+                            type="button"
+                            class="btn btn-biome w-100 mt-auto btn-ver-plan"
+                            data-nombre="${plan.nombre}"
+                            data-beneficios="${beneficiosTexto}">
+                            Ver detalle
+                        </button>
+                    </div>
                 </div>
             </div>
         `;

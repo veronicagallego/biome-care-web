@@ -1,17 +1,38 @@
 [
     {
-        "nombre": "Plan Básico",
+        "nombre": "Plan Esencial",
         "precio": 50000,
-        "beneficios": ["Consultas médicas generales", "Guardia 24hs","Acceso a farmacias", "Cobertura odontológica básica"]
+        "descripcion": "Cobertura médica básica para consultas generales y atención inicial.",
+        "beneficios": [
+            "Consultas médicas clínicas",
+            "Guardia médica 24 hs",
+            "Acceso a red de farmacias",
+            "Cobertura odontológica básica"
+        ],
+        "destacado": false
     },
     {
-        "nombre": "Plan Intermedio",
+        "nombre": "Plan Integral",
         "precio": 100000,
-        "beneficios": ["Consultas médicas especializadas", "Hospitalización", "Cobertura odontológica avanzada"]
+        "descripcion": "Cobertura ampliada con acceso a especialidades y estudios.",
+        "beneficios": [
+            "Consultas con especialistas",
+            "Internación clínica",
+            "Estudios de diagnóstico",
+            "Cobertura odontológica avanzada"
+        ],
+        "destacado": true
     },
     {
         "nombre": "Plan Premium",
         "precio": 200000,
-        "beneficios": ["Internación sin costo", "Acceso a cirugías", "Medicina preventiva avanzada", "Cobertura odontológica avanzada"]
+        "descripcion": "Cobertura completa con acceso prioritario y prestaciones de alta complejidad.",
+        "beneficios": [
+            "Internación sin cargo",
+            "Cirugías programadas",
+            "Medicina preventiva avanzada",
+            "Cobertura odontológica completa"
+        ],
+        "destacado": false
     }
 ]
