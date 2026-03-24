@@ -1,243 +1,429 @@
+/* =========================================================
+   UTILIDADES GENERALES
+========================================================= */
+
+const obtenerTurnos = () => JSON.parse(localStorage.getItem("turnos")) || [];
+const guardarTurnos = (turnos) => localStorage.setItem("turnos", JSON.stringify(turnos));
+
+const obtenerContratos = () => JSON.parse(localStorage.getItem("contratos")) || [];
+const guardarContratos = (contratos) => localStorage.setItem("contratos", JSON.stringify(contratos));
+
+const formatearPrecio = (valor) => `$${Number(valor).toLocaleString("es-AR")}`;
 
 const mostrarError = (inputId, mensaje) => {
-    let input = document.getElementById(inputId);
-    let error = document.getElementById(inputId + "-error");
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    let error = document.getElementById(`${inputId}-error`);
 
     if (!error) {
         error = document.createElement("small");
-        error.id = inputId + "-error";
-        error.classList.add("text-danger");
+        error.id = `${inputId}-error`;
+        error.classList.add("text-danger", "d-block", "mt-1");
         input.parentNode.appendChild(error);
     }
 
     error.textContent = mensaje;
 };
 
-
 const limpiarErrores = () => {
-    document.querySelectorAll(".text-danger").forEach((el) => el.remove());
-    
+    document.querySelectorAll("[id$='-error']").forEach((el) => {
+        if (el.classList.contains("text-danger")) {
+            el.remove();
+        }
+    });
 };
 
+const ordenarTurnosPorFecha = (turnos) => {
+    return [...turnos].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+};
+
+/* =========================================================
+   ALERTAS
+========================================================= */
+
+const alertaErrorDatos = (mensaje) => {
+    Swal.fire({
+        icon: "error",
+        title: "Datos incorrectos",
+        text: mensaje,
+        confirmButtonColor: "#dc3545"
+    });
+};
+
+const alertaExito = (titulo, texto) => {
+    Swal.fire({
+        icon: "success",
+        title: titulo,
+        text: texto,
+        confirmButtonColor: "#198754"
+    });
+};
+
+/* =========================================================
+   TURNOS - FORMULARIO PÚBLICO
+========================================================= */
 
 const agregarTurnoDesdeContacto = (e) => {
     e.preventDefault();
-    limpiarErrores(); 
+    limpiarErrores();
 
-    const nombre = document.getElementById("nombre-contacto").value.trim();
-    const email = document.getElementById("email-contacto").value.trim();
-    const especialidad = document.getElementById("especialidad-contacto").value;
-    const fecha = document.getElementById("fecha-contacto").value;
-    const hora = document.getElementById("hora-contacto").value;
+    const nombre = document.getElementById("nombre-contacto")?.value.trim() || "";
+    const email = document.getElementById("email-contacto")?.value.trim() || "";
+    const especialidad = document.getElementById("especialidad-contacto")?.value || "";
+    const fecha = document.getElementById("fecha-contacto")?.value || "";
+    const hora = document.getElementById("hora-contacto")?.value || "";
 
     let errores = false;
 
-    
-    if (!nombre || !/^[a-zA-Z\s]+$/.test(nombre)) {
-        mostrarError("nombre-contacto", "Por favor, ingresa un nombre válido.");
+    if (!nombre || !/^[a-zA-ZÀ-ÿ\s]+$/.test(nombre)) {
+        mostrarError("nombre-contacto", "Por favor, ingresá un nombre válido.");
         errores = true;
     }
 
-    
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-        mostrarError("email-contacto", "Por favor, ingresa un correo válido.");
+        mostrarError("email-contacto", "Por favor, ingresá un correo válido.");
         errores = true;
     }
 
-   
     if (!especialidad) {
-        mostrarError("especialidad-contacto", "Por favor, selecciona una especialidad.");
+        mostrarError("especialidad-contacto", "Por favor, seleccioná una especialidad.");
         errores = true;
     }
 
-    
     const hoy = new Date().toISOString().split("T")[0];
     if (!fecha || fecha < hoy) {
-        mostrarError("fecha-contacto", "Selecciona una fecha válida (no en el pasado).");
+        mostrarError("fecha-contacto", "Seleccioná una fecha válida.");
         errores = true;
     }
 
-    
     if (!hora) {
-        mostrarError("hora-contacto", "Por favor, selecciona un horario.");
+        mostrarError("hora-contacto", "Por favor, seleccioná un horario.");
         errores = true;
     }
 
-    
     if (errores) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Datos Incorrectos',
-            text: 'Corrige los errores antes de solicitar el turno.',
-            confirmButtonColor: '#dc3545'
-        });
+        alertaErrorDatos("Corregí los errores antes de solicitar el turno.");
         return;
     }
 
-    
-    let turnos = JSON.parse(localStorage.getItem("turnos")) || [];
-    const turnoExistente = turnos.some(turno => turno.especialidad === especialidad && turno.fecha === fecha && turno.hora === hora);
+    const turnos = obtenerTurnos();
+
+    const turnoExistente = turnos.some(
+        (turno) =>
+            turno.especialidad === especialidad &&
+            turno.fecha === fecha &&
+            turno.hora === hora
+    );
 
     if (turnoExistente) {
         Swal.fire({
-            icon: 'warning',
-            title: 'Horario No Disponible',
-            text: `Ya hay un turno en ${especialidad} a las ${hora}. Por favor, elige otro horario.`,
-            confirmButtonColor: '#17a2b8'
+            icon: "warning",
+            title: "Horario no disponible",
+            html: `
+                <p>Ya existe un turno para <strong>${especialidad}</strong>.</p>
+                <p>Fecha: <strong>${fecha}</strong></p>
+                <p>Horario: <strong>${hora}</strong></p>
+                <p class="mt-3">Por favor, seleccioná otra combinación disponible.</p>
+            `,
+            confirmButtonText: "Entendido",
+            customClass: {
+                popup: "swal-biome-popup",
+                title: "swal-biome-title",
+                htmlContainer: "swal-biome-html",
+                confirmButton: "swal-biome-confirm"
+            },
+            buttonsStyling: false
         });
         return;
     }
 
     turnos.push({ nombre, email, especialidad, fecha, hora });
-    localStorage.setItem("turnos", JSON.stringify(turnos));
+    guardarTurnos(turnos);
 
     Swal.fire({
-        icon: 'success',
-        title: 'Turno Solicitado',
-        text: 'Tu turno ha sido registrado. Recibirás un correo con la confirmación.',
-        confirmButtonColor: '#198754'
+        icon: "success",
+        title: "Turno solicitado",
+        html: `
+            <p><strong>${nombre}</strong>, tu solicitud fue registrada correctamente.</p>
+            <p>Especialidad: <strong>${especialidad}</strong></p>
+            <p>Fecha: <strong>${fecha}</strong></p>
+            <p>Horario: <strong>${hora}</strong></p>
+        `,
+        confirmButtonText: "Aceptar",
+        customClass: {
+            popup: "swal-biome-popup",
+            title: "swal-biome-title",
+            htmlContainer: "swal-biome-html",
+            confirmButton: "swal-biome-confirm"
+        },
+        buttonsStyling: false
     });
 
-    document.getElementById("form-turno-contacto").reset();
-    renderizarTurnos();
+    const formulario = document.getElementById("form-turno-contacto");
+    if (formulario) formulario.reset();
+
     renderizarTurnosRecepcion();
 };
-
-
-
-const renderizarTurnos = () => {
-    let turnos = JSON.parse(localStorage.getItem("turnos")) || [];
-    const listaTurnosContainer = document.getElementById("tabla-turnos");
-    if (!listaTurnosContainer) return;
-
-    turnos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-    listaTurnosContainer.innerHTML = "";
-    turnos.forEach((turno, index) => {
-        listaTurnosContainer.innerHTML += `
-            <div class="card p-3 mb-2 shadow-sm d-flex justify-content-between align-items-center">
-                <div><strong>${turno.nombre}</strong> - ${turno.especialidad} - 📆 ${turno.fecha} - ⏰ ${turno.hora}</div>
-                <button class="btn btn-outline-danger btn-sm btn-delete" onclick="eliminarTurno(${index})"><i class="bi bi-trash-fill"></i></button>
-            </div>`;
-    });
-};
-
+/* =========================================================
+   PANEL DE TURNOS
+========================================================= */
 
 const renderizarTurnosRecepcion = () => {
-    let turnos = JSON.parse(localStorage.getItem("turnos")) || [];
     const tablaTurnos = document.getElementById("tabla-turnos");
-    if (!tablaTurnos) return;
+    const cardsMobile = document.getElementById("turnos-cards-mobile");
+    const contadorTurnos = document.getElementById("contador-turnos");
+    const estadoVacio = document.getElementById("estado-vacio-turnos");
 
-    turnos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-    tablaTurnos.innerHTML = "";
+    const turnos = ordenarTurnosPorFecha(obtenerTurnos());
+
+    if (tablaTurnos) tablaTurnos.innerHTML = "";
+    if (cardsMobile) cardsMobile.innerHTML = "";
+
+    if (contadorTurnos) {
+        contadorTurnos.textContent = turnos.length;
+    }
+
+    if (estadoVacio) {
+        estadoVacio.classList.toggle("d-none", turnos.length !== 0);
+    }
+
+    if (turnos.length === 0) return;
+
     turnos.forEach((turno, index) => {
-        const fila = document.createElement("tr");
-        fila.innerHTML = `<td>${turno.nombre}</td><td>${turno.email}</td><td>${turno.especialidad}</td><td>${turno.fecha}</td><td>${turno.hora}</td>
-            <td><button class="btn btn-outline-danger btn-sm" onclick="eliminarTurno(${index})"><i class="bi bi-trash"></i></button></td>`;
-        tablaTurnos.appendChild(fila);
-    });
-};
+        if (tablaTurnos) {
+            const fila = document.createElement("tr");
+            fila.innerHTML = `
+                <td><strong>${turno.nombre}</strong></td>
+                <td>${turno.email}</td>
+                <td>${turno.especialidad}</td>
+                <td>${turno.fecha}</td>
+                <td>${turno.hora}</td>
+                <td class="text-center">
+                    <button class="btn btn-outline-danger btn-sm btn-eliminar-turno" data-index="${index}" aria-label="Eliminar turno">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            tablaTurnos.appendChild(fila);
+        }
 
+        if (cardsMobile) {
+            const card = document.createElement("div");
+            card.className = "turno-mobile-card p-4 mb-3";
 
-const eliminarTurno = (index) => {
-    Swal.fire({
-        title: '¿Estás seguro?', text: "No podrás recuperar este turno.", icon: 'warning',
-        showCancelButton: true, confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            let turnos = JSON.parse(localStorage.getItem("turnos")) || [];
-            turnos.splice(index, 1);
-            localStorage.setItem("turnos", JSON.stringify(turnos));
-            renderizarTurnos();
-            renderizarTurnosRecepcion();
-            Swal.fire('Eliminado', 'El turno ha sido eliminado correctamente.', 'success');
+            card.innerHTML = `
+                <div class="turno-mobile-header">
+                    <div>
+                        <h3 class="turno-mobile-paciente">${turno.nombre}</h3>
+                        <p class="turno-mobile-especialidad">${turno.especialidad}</p>
+                    </div>
+                    <button class="btn btn-outline-danger btn-sm btn-eliminar-turno" data-index="${index}" aria-label="Eliminar turno">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+
+                <div class="turno-mobile-body">
+                    <div class="turno-mobile-item">
+                        <i class="bi bi-envelope turno-mobile-icon"></i>
+                        <div>
+                            <span class="turno-mobile-label">Correo</span>
+                            <span class="turno-mobile-value">${turno.email}</span>
+                        </div>
+                    </div>
+
+                    <div class="turno-mobile-item">
+                        <i class="bi bi-calendar-event turno-mobile-icon"></i>
+                        <div>
+                            <span class="turno-mobile-label">Fecha</span>
+                            <span class="turno-mobile-value">${turno.fecha}</span>
+                        </div>
+                    </div>
+
+                    <div class="turno-mobile-item">
+                        <i class="bi bi-clock turno-mobile-icon"></i>
+                        <div>
+                            <span class="turno-mobile-label">Horario</span>
+                            <span class="turno-mobile-value">${turno.hora}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            cardsMobile.appendChild(card);
         }
     });
 };
+const eliminarTurno = (index) => {
+    Swal.fire({
+        title: "¿Eliminar turno?",
+        text: "Esta acción no se puede deshacer.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Sí, eliminar",
+        cancelButtonText: "Cancelar",
+        customClass: {
+            popup: "swal-biome-popup",
+            title: "swal-biome-title",
+            htmlContainer: "swal-biome-html",
+            confirmButton: "swal-biome-confirm",
+            cancelButton: "swal-biome-cancel"
+        },
+        buttonsStyling: false
+    }).then((result) => {
+        if (!result.isConfirmed) return;
 
+        const turnos = obtenerTurnos();
+        turnos.splice(index, 1);
+        guardarTurnos(turnos);
+
+        renderizarTurnosRecepcion();
+
+        Swal.fire({
+            icon: "success",
+            title: "Turno eliminado",
+            text: "El turno fue eliminado correctamente.",
+            customClass: {
+                popup: "swal-biome-popup",
+                title: "swal-biome-title",
+                htmlContainer: "swal-biome-html",
+                confirmButton: "swal-biome-confirm"
+            },
+            buttonsStyling: false
+        });
+    });
+};
+
+const conectarEventosPanel = () => {
+    document.addEventListener("click", (e) => {
+        const botonEliminar = e.target.closest(".btn-eliminar-turno");
+        if (!botonEliminar) return;
+
+        const index = Number(botonEliminar.dataset.index);
+        eliminarTurno(index);
+    });
+};
+
+/* =========================================================
+   PLANES DE SALUD
+========================================================= */
 
 const calcularPlanSalud = (edad, zona, trabajo, personas) => {
     let plan = { nombre: "Plan Básico", precio: 50000 };
-    if (edad > 40) plan = { nombre: "Plan Intermedio", precio: 100000 };
-    if (zona === "Capital") plan.precio += 20000;
-    if (trabajo === "Independiente") plan.precio += 30000;
-    if (personas > 3) plan.precio += (personas - 3) * 10000;
+
+    if (edad > 40) {
+        plan = { nombre: "Plan Intermedio", precio: 100000 };
+    }
+
+    if (zona === "Capital") {
+        plan.precio += 20000;
+    }
+
+    if (trabajo === "Independiente") {
+        plan.precio += 30000;
+    }
+
+    if (personas > 3) {
+        plan.precio += (personas - 3) * 10000;
+    }
+
     return plan;
 };
-
-const planesSalud = [
-    { nombre: "Plan Básico", precio: 50000, descripcion: "Cobertura esencial para consultas médicas y urgencias menores." },
-    { nombre: "Plan Intermedio", precio: 100000, descripcion: "Incluye estudios avanzados y cobertura extendida." },
-    { nombre: "Plan Premium", precio: 150000, descripcion: "Cobertura total con atención VIP y cirugías programadas." }
-];
-
-
 
 const seleccionarPlan = (nombre, beneficios) => {
     Swal.fire({
         title: `Detalles del ${nombre}`,
-        html: `<p><strong>Beneficios:</strong> ${beneficios}</p>
-               <p>¿Quieres cotizar este plan o volver al inicio?</p>`,
+        html: `
+            <p><strong>Beneficios incluidos:</strong></p>
+            <p>${beneficios}</p>
+            <p class="mt-3">¿Querés cotizar este plan?</p>
+        `,
         icon: "info",
         showCancelButton: true,
         showDenyButton: true,
-        confirmButtonText: "Cotizar este Plan",
-        denyButtonText: "Volver al Inicio",
+        confirmButtonText: "Cotizar plan",
+        denyButtonText: "Volver al inicio",
         cancelButtonText: "Cancelar",
-        confirmButtonColor: "#28a745",
-        denyButtonColor: "#6c757d",
-        cancelButtonColor: "#dc3545"
+        customClass: {
+            popup: "swal-biome-popup",
+            title: "swal-biome-title",
+            htmlContainer: "swal-biome-html",
+            confirmButton: "swal-biome-confirm",
+            denyButton: "swal-biome-deny",
+            cancelButton: "swal-biome-cancel"
+        },
+        buttonsStyling: false
     }).then((result) => {
         if (result.isConfirmed) {
-           
-            document.getElementById("form-simulador").scrollIntoView({ behavior: "smooth" });
+            const formulario = document.getElementById("form-simulador");
+            if (formulario) {
+                formulario.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
         } else if (result.isDenied) {
-            
             window.scrollTo({ top: 0, behavior: "smooth" });
         }
     });
 };
 
-
-
-
 const mostrarPlanesResumen = (planes) => {
     const contenedor = document.getElementById("planes-container");
     if (!contenedor) return;
 
-    contenedor.innerHTML = ""; 
-    planes.forEach(plan => {
+    contenedor.innerHTML = "";
+
+    planes.forEach((plan) => {
+        const beneficiosTexto = plan.beneficios.join(", ").replace(/'/g, "\\'");
+
         contenedor.innerHTML += `
-            <div class="col-md-4">
-                <div class="card shadow-sm p-3 mb-4 text-center">
-                    <h3 class="card-title text-info">${plan.nombre}</h3>
-                    <p class="card-text">${plan.beneficios.join(", ")}</p>
-                    <button class="btn btn-info btn-sm" onclick="seleccionarPlan('${plan.nombre}', '${plan.beneficios.join(", ")}')">Ver Detalles</button>
+            <div class="col-md-6 col-lg-4">
+                <div class="card">
+                    <h3 class="card-title h4">${plan.nombre}</h3>
+                    <p class="plan-price">${formatearPrecio(plan.precio)}</p>
+                    <ul>
+                        ${plan.beneficios.map((beneficio) => `<li>${beneficio}</li>`).join("")}
+                    </ul>
+                    <button 
+                        type="button"
+                        class="btn btn-biome w-100 mt-auto btn-ver-plan"
+                        data-nombre="${plan.nombre}"
+                        data-beneficios="${beneficiosTexto}">
+                        Ver detalle
+                    </button>
                 </div>
             </div>
         `;
     });
 };
 
+const conectarEventosPlanes = () => {
+    const contenedor = document.getElementById("planes-container");
+    if (!contenedor) return;
 
+    contenedor.addEventListener("click", (e) => {
+        const boton = e.target.closest(".btn-ver-plan");
+        if (!boton) return;
 
+        const nombre = boton.dataset.nombre;
+        const beneficios = boton.dataset.beneficios;
 
+        seleccionarPlan(nombre, beneficios);
+    });
+};
 
 const cotizarPlan = (e) => {
     e.preventDefault();
-    limpiarErrores(); 
+    limpiarErrores();
 
-    const nombre = document.getElementById("nombre").value.trim();
-    const edad = document.getElementById("edad").value.trim();
-    const zona = document.getElementById("zona").value;
-    const trabajo = document.getElementById("trabajo").value;
-    const personas = document.getElementById("personas").value.trim();
+    const nombre = document.getElementById("nombre")?.value.trim() || "";
+    const edad = document.getElementById("edad")?.value.trim() || "";
+    const zona = document.getElementById("zona")?.value || "";
+    const trabajo = document.getElementById("trabajo")?.value || "";
+    const personas = document.getElementById("personas")?.value.trim() || "";
 
     let errores = false;
 
-    
-    if (!nombre || !/^[a-zA-Z\s]+$/.test(nombre)) {
-        mostrarError("nombre", "Por favor, ingresa un nombre válido.");
+    if (!nombre || !/^[a-zA-ZÀ-ÿ\s]+$/.test(nombre)) {
+        mostrarError("nombre", "Por favor, ingresá un nombre válido.");
         errores = true;
     }
 
@@ -246,46 +432,53 @@ const cotizarPlan = (e) => {
         errores = true;
     }
 
-    
     if (!zona) {
-        mostrarError("zona", "Por favor, selecciona una zona.");
+        mostrarError("zona", "Por favor, seleccioná una zona.");
         errores = true;
     }
 
     if (!trabajo) {
-        mostrarError("trabajo", "Por favor, selecciona tu tipo de trabajo.");
+        mostrarError("trabajo", "Por favor, seleccioná tu situación laboral.");
         errores = true;
     }
 
-    
     if (!personas || isNaN(personas) || personas < 1 || personas > 10) {
-        mostrarError("personas", "Debes ingresar un número válido de personas (1-10).");
+        mostrarError("personas", "Ingresá un número válido de personas (1 a 10).");
         errores = true;
     }
 
     if (errores) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Datos Incorrectos',
-            text: 'Por favor, corrige los errores antes de cotizar.',
-            confirmButtonColor: '#dc3545'
-        });
+        alertaErrorDatos("Corregí los errores antes de cotizar.");
         return;
     }
 
-   
-    const planRecomendado = calcularPlanSalud(parseInt(edad), zona, trabajo, parseInt(personas));
+    const planRecomendado = calcularPlanSalud(
+        parseInt(edad, 10),
+        zona,
+        trabajo,
+        parseInt(personas, 10)
+    );
 
     Swal.fire({
-        title: "Plan Recomendado",
-        html: `<strong>${nombre}</strong>, te recomendamos el <strong>${planRecomendado.nombre}</strong>.<br>
-               Costo mensual estimado: <strong>$${planRecomendado.precio}</strong>`,
+        title: "Plan recomendado",
+        html: `
+            <p><strong>${nombre}</strong>, según los datos ingresados te recomendamos el:</p>
+            <p><strong>${planRecomendado.nombre}</strong></p>
+            <p>Costo mensual estimado: <strong>${formatearPrecio(planRecomendado.precio)}</strong></p>
+            <p class="mt-3">¿Querés continuar con la solicitud?</p>
+        `,
         icon: "info",
-        confirmButtonText: "Contratar Plan",
         showCancelButton: true,
+        confirmButtonText: "Contratar plan",
         cancelButtonText: "Cancelar",
-        confirmButtonColor: "#28a745",
-        cancelButtonColor: "#dc3545"
+        customClass: {
+            popup: "swal-biome-popup",
+            title: "swal-biome-title",
+            htmlContainer: "swal-biome-html",
+            confirmButton: "swal-biome-confirm",
+            cancelButton: "swal-biome-cancel"
+        },
+        buttonsStyling: false
     }).then((result) => {
         if (result.isConfirmed) {
             contratarPlan(planRecomendado, nombre);
@@ -293,32 +486,40 @@ const cotizarPlan = (e) => {
     });
 };
 
-
-
 const contratarPlan = (plan, nombre) => {
+    const contratos = obtenerContratos();
+    contratos.push({ nombre, plan: plan.nombre, precio: plan.precio });
+    guardarContratos(contratos);
+
     Swal.fire({
-        title: "¡Contrato Exitoso!",
-        html: `<strong>${nombre}</strong>, tu solicitud para el <strong>${plan.nombre}</strong> ha sido registrada.<br>
-               Nos pondremos en contacto contigo para finalizar el proceso.`,
+        title: "Solicitud registrada",
+        html: `
+            <p><strong>${nombre}</strong>, tu solicitud para el</p>
+            <p><strong>${plan.nombre}</strong> fue registrada correctamente.</p>
+            <p>Nos pondremos en contacto para continuar el proceso.</p>
+        `,
         icon: "success",
         confirmButtonText: "Aceptar",
-        confirmButtonColor: "#198754"
+        customClass: {
+            popup: "swal-biome-popup",
+            title: "swal-biome-title",
+            htmlContainer: "swal-biome-html",
+            confirmButton: "swal-biome-confirm"
+        },
+        buttonsStyling: false
     });
 
-    
-    let contratos = JSON.parse(localStorage.getItem("contratos")) || [];
-    contratos.push({ nombre, plan: plan.nombre, precio: plan.precio });
-    localStorage.setItem("contratos", JSON.stringify(contratos));
-
-  
-    document.getElementById("form-simulador").reset();
+    const formulario = document.getElementById("form-simulador");
+    if (formulario) formulario.reset();
 };
-
 
 const cargarPlanes = async () => {
     try {
         const respuesta = await fetch("js/planes.json");
-        if (!respuesta.ok) throw new Error("Error al cargar los planes");
+        if (!respuesta.ok) {
+            throw new Error("No se pudieron cargar los planes.");
+        }
+
         const planes = await respuesta.json();
         mostrarPlanesResumen(planes);
     } catch (error) {
@@ -326,30 +527,40 @@ const cargarPlanes = async () => {
     }
 };
 
+/* =========================================================
+   ACCESO PROFESIONAL
+========================================================= */
 
-const mostrarPlanes = (planes) => {
-    const contenedor = document.getElementById("planes-lista");
-    if (!contenedor) return;
-    contenedor.innerHTML = "";
+const conectarAccesoRecepcion = () => {
+    const accesoRecepcion = document.getElementById("accesoRecepcion");
+    if (!accesoRecepcion) return;
 
-    planes.forEach(plan => {
-        contenedor.innerHTML += `
-            <div class="card-plan">
-                <h3 class="card-title">${plan.nombre}</h3>
-                <p><strong>Precio:</strong> $${plan.precio}</p>
-                <ul>${plan.beneficios.map(b => `<li>${b}</li>`).join('')}</ul>
-                <button class="btn btn-info">Seleccionar</button>
-            </div>
-        `;
+    accesoRecepcion.addEventListener("click", (e) => {
+        e.preventDefault();
+        window.location.href = "turnos.html";
     });
 };
 
+/* =========================================================
+   INICIALIZACIÓN
+========================================================= */
 
 document.addEventListener("DOMContentLoaded", () => {
-    if (document.getElementById("form-simulador")) document.getElementById("form-simulador").addEventListener("submit", cotizarPlan);
-    if (document.getElementById("form-turno-contacto")) document.getElementById("form-turno-contacto").addEventListener("submit", agregarTurnoDesdeContacto);
-    renderizarTurnos();
+    const formularioPlanes = document.getElementById("form-simulador");
+    const formularioTurnos = document.getElementById("form-turno-contacto");
+
+    if (formularioPlanes) {
+        formularioPlanes.addEventListener("submit", cotizarPlan);
+    }
+
+    if (formularioTurnos) {
+        formularioTurnos.addEventListener("submit", agregarTurnoDesdeContacto);
+    }
+
+    conectarAccesoRecepcion();
+    conectarEventosPanel();
+    conectarEventosPlanes();
+
     renderizarTurnosRecepcion();
     cargarPlanes();
-    
 });
